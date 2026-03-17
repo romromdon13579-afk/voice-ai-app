@@ -161,7 +161,7 @@ export default function Schedule() {
       setChatMessages(prev => [...prev, { role: "ai", text: reply }]);
     } catch (err) {
       const errText = err.message === "MISSING_API_KEY"
-        ? "⚠️ מפתח API חסר — הגדר VITE_GEMINI_API_KEY ב-.env"
+        ? "⚠️ מפתח API חסר — הגדר VITE_GROQ_API_KEY בהגדרות Netlify"
         : `שגיאה: ${err.message}`;
       setChatMessages(prev => [...prev, { role: "ai", text: errText }]);
     } finally {

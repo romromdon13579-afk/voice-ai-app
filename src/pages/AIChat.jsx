@@ -147,7 +147,7 @@ export default function AIChat() {
       ]);
     } catch (err) {
       const errText = err.message === "MISSING_API_KEY"
-        ? "⚠️ מפתח API חסר. הוסף VITE_GEMINI_API_KEY ל-.env"
+        ? "⚠️ מפתח API חסר. הגדר VITE_GROQ_API_KEY בהגדרות Netlify"
         : `שגיאה: ${err.message}`;
       setDisplayMessages(prev => [
         ...prev,
