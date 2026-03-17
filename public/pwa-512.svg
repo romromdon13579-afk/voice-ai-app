@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="shieldOuter" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d0dce8"/>
+      <stop offset="45%" stop-color="#c8d6e4"/>
+      <stop offset="100%" stop-color="#8899b0"/>
+    </linearGradient>
+    <linearGradient id="shieldInner" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#142040"/>
+      <stop offset="100%" stop-color="#091628"/>
+    </linearGradient>
+    <linearGradient id="calHeader" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e4a8a"/>
+      <stop offset="100%" stop-color="#163670"/>
+    </linearGradient>
+    <linearGradient id="orangeCell" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e8842a"/>
+      <stop offset="100%" stop-color="#c96018"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle for icon -->
+  <rect width="192" height="192" rx="38" fill="#0f2035"/>
+
+  <!-- Shield outer -->
+  <path d="M96,14 L174,46 L174,112 Q174,162 96,184 Q18,162 18,112 L18,46 Z"
+        fill="url(#shieldOuter)" stroke="#8899b0" stroke-width="1"/>
+
+  <!-- Shield inner -->
+  <path d="M96,22 L166,52 L166,112 Q166,158 96,177 Q26,158 26,112 L26,52 Z"
+        fill="url(#shieldInner)"/>
+
+  <!-- Subtle grid lines -->
+  <g stroke="#1e3558" stroke-width="0.4" opacity="0.5">
+    <line x1="26" y1="72" x2="166" y2="72"/>
+    <line x1="26" y1="92" x2="166" y2="92"/>
+    <line x1="26" y1="112" x2="166" y2="112"/>
+    <line x1="26" y1="132" x2="166" y2="132"/>
+    <line x1="55" y1="50" x2="55" y2="170"/>
+    <line x1="80" y1="50" x2="80" y2="175"/>
+    <line x1="96" y1="50" x2="96" y2="177"/>
+    <line x1="112" y1="50" x2="112" y2="175"/>
+    <line x1="137" y1="50" x2="137" y2="170"/>
+  </g>
+
+  <!-- Calendar body -->
+  <rect x="46" y="60" width="98" height="86" rx="5" fill="#163060" stroke="#2a5090" stroke-width="1"/>
+  <!-- Calendar header bar -->
+  <rect x="46" y="60" width="98" height="16" rx="5" fill="url(#calHeader)"/>
+  <rect x="46" y="68" width="98" height="8" fill="url(#calHeader)"/>
+
+  <!-- Calendar hooks -->
+  <rect x="62" y="54" width="7" height="13" rx="3" fill="#4a78c0"/>
+  <rect x="121" y="54" width="7" height="13" rx="3" fill="#4a78c0"/>
+
+  <!-- Clock -->
+  <circle cx="96" cy="56" r="13" fill="#163060" stroke="#4a78c0" stroke-width="1.5"/>
+  <circle cx="96" cy="56" r="10" fill="#1a3878" stroke="#3060a8" stroke-width="0.5"/>
+  <line x1="96" y1="56" x2="96" y2="48" stroke="#c8dcf0" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="96" y1="56" x2="102" y2="58" stroke="#c8dcf0" stroke-width="1" stroke-linecap="round"/>
+  <circle cx="96" cy="56" r="1.5" fill="#c8dcf0"/>
+
+  <!-- Grid rows -->
+  <g fill="#3060a8" opacity="0.7">
+    <rect x="50" y="80" width="12" height="10" rx="1"/>
+    <rect x="65" y="80" width="12" height="10" rx="1"/>
+    <rect x="80" y="80" width="12" height="10" rx="1"/>
+    <rect x="95" y="80" width="12" height="10" rx="1"/>
+    <rect x="110" y="80" width="12" height="10" rx="1"/>
+    <rect x="125" y="80" width="12" height="10" rx="1"/>
+  </g>
+  <g fill="#204880">
+    <rect x="50" y="93" width="12" height="10" rx="1"/>
+    <rect x="65" y="93" width="12" height="10" rx="1"/>
+    <rect x="80" y="93" width="12" height="10" rx="1"/>
+    <rect x="95" y="93" width="12" height="10" rx="1"/>
+    <rect x="110" y="93" width="12" height="10" rx="1"/>
+    <rect x="125" y="93" width="12" height="10" rx="1"/>
+  </g>
+  <!-- Row with orange -->
+  <rect x="50"  y="106" width="12" height="10" rx="1" fill="#204880"/>
+  <rect x="65"  y="106" width="12" height="10" rx="1" fill="#204880"/>
+  <rect x="80"  y="106" width="12" height="10" rx="1" fill="#204880"/>
+  <rect x="95"  y="106" width="12" height="10" rx="1" fill="#204880"/>
+  <rect x="110" y="106" width="12" height="10" rx="1" fill="url(#orangeCell)"/>
+  <rect x="125" y="106" width="12" height="10" rx="1" fill="url(#orangeCell)" opacity="0.85"/>
+  <g fill="#204880">
+    <rect x="50"  y="119" width="12" height="10" rx="1"/>
+    <rect x="65"  y="119" width="12" height="10" rx="1"/>
+    <rect x="80"  y="119" width="12" height="10" rx="1"/>
+    <rect x="95"  y="119" width="12" height="10" rx="1"/>
+    <rect x="110" y="119" width="12" height="10" rx="1"/>
+    <rect x="125" y="119" width="12" height="10" rx="1"/>
+  </g>
+</svg>
