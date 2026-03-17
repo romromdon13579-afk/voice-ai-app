@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - claude/military-duty-scheduler-PFure
 
 jobs:
   deploy:
