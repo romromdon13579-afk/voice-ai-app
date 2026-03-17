@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
   createGroup, addSoldierToGroup, addTask,
-  saveHistoricalData
+  saveHistoricalData, getUserByUsername
 } from "../services/firestoreService.js";
 import { Timestamp } from "firebase/firestore";
 
@@ -27,7 +27,11 @@ export default function CreateFile() {
 
   // Step 2
   const [soldiers, setSoldiers] = useState([]);
+  const [addMode, setAddMode] = useState("manual"); // "manual" | "username"
   const [newSoldierName, setNewSoldierName] = useState("");
+  const [newSoldierUsername, setNewSoldierUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [usernameLoading, setUsernameLoading] = useState(false);
 
   // Step 3
   const [history, setHistory] = useState({});
@@ -86,14 +90,48 @@ export default function CreateFile() {
 
   // ── Step 2: Soldiers ──────────────────────────────────────
 
-  function addSoldier() {
+  function addSoldierManual() {
     if (!newSoldierName.trim()) return;
     setSoldiers([...soldiers, {
       tempId: Date.now(),
       name: newSoldierName.trim(),
-      activeDays: [0,1,2,3,4,5,6]
+      displayName: newSoldierName.trim(),
+      activeDays: [0,1,2,3,4,5,6],
+      uid: null,
+      type: "manual"
     }]);
     setNewSoldierName("");
+  }
+
+  async function addSoldierByUsername() {
+    if (!newSoldierUsername.trim()) return;
+    setUsernameError("");
+    setUsernameLoading(true);
+    try {
+      const user = await getUserByUsername(newSoldierUsername.trim());
+      if (!user) {
+        setUsernameError("שם משתמש לא נמצא במערכת.");
+        return;
+      }
+      if (soldiers.some(s => s.uid === user.id)) {
+        setUsernameError("החייל כבר נוסף לרשימה.");
+        return;
+      }
+      setSoldiers([...soldiers, {
+        tempId: Date.now(),
+        name: user.displayName || newSoldierUsername.trim(),
+        displayName: user.displayName || newSoldierUsername.trim(),
+        activeDays: [0,1,2,3,4,5,6],
+        uid: user.id,
+        username: newSoldierUsername.trim(),
+        type: "registered"
+      }]);
+      setNewSoldierUsername("");
+    } catch {
+      setUsernameError("שגיאה בחיפוש משתמש.");
+    } finally {
+      setUsernameLoading(false);
+    }
   }
 
   function removeSoldier(idx) {
@@ -150,10 +188,11 @@ export default function CreateFile() {
       for (const soldier of soldiers) {
         await addSoldierToGroup(gid, {
           name: soldier.name,
-          displayName: soldier.name,
+          displayName: soldier.displayName || soldier.name,
           activeDays: soldier.activeDays,
           active: true,
-          uid: null
+          uid: soldier.uid || null,
+          ...(soldier.username ? { username: soldier.username } : {})
         });
       }
 
@@ -315,16 +354,57 @@ export default function CreateFile() {
         <div className="card">
           <h3 style={{ marginBottom: 16 }}>שלב ב׳ — הוספת חיילים לקבוצה</h3>
 
-          <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-            <input
-              className="form-input"
-              placeholder="שם החייל"
-              value={newSoldierName}
-              onChange={e => setNewSoldierName(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && addSoldier()}
-            />
-            <button className="btn btn-primary" onClick={addSoldier}>+ הוסף</button>
+          {/* Mode toggle */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            <button
+              className={`btn btn-sm ${addMode === "manual" ? "btn-primary" : "btn-outline"}`}
+              onClick={() => { setAddMode("manual"); setUsernameError(""); }}
+            >
+              ✏️ הוספה ידנית
+            </button>
+            <button
+              className={`btn btn-sm ${addMode === "username" ? "btn-primary" : "btn-outline"}`}
+              onClick={() => { setAddMode("username"); setUsernameError(""); }}
+            >
+              👤 לפי שם משתמש
+            </button>
           </div>
+
+          {addMode === "manual" ? (
+            <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+              <input
+                className="form-input"
+                placeholder="שם החייל"
+                value={newSoldierName}
+                onChange={e => setNewSoldierName(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && addSoldierManual()}
+              />
+              <button className="btn btn-primary" onClick={addSoldierManual}>+ הוסף</button>
+            </div>
+          ) : (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ display: "flex", gap: 10 }}>
+                <input
+                  className="form-input"
+                  placeholder="שם משתמש (לדוגמה: david123)"
+                  value={newSoldierUsername}
+                  onChange={e => { setNewSoldierUsername(e.target.value); setUsernameError(""); }}
+                  onKeyDown={e => e.key === "Enter" && addSoldierByUsername()}
+                />
+                <button className="btn btn-primary" onClick={addSoldierByUsername} disabled={usernameLoading}>
+                  {usernameLoading ? "⏳" : "שלח הזמנה"}
+                </button>
+              </div>
+              {usernameError && (
+                <div style={{ color: "var(--danger, #e53e3e)", fontSize: "0.85rem", marginTop: 6 }}>
+                  {usernameError}
+                </div>
+              )}
+              <div style={{ color: "var(--gray-500)", fontSize: "0.82rem", marginTop: 6 }}>
+                החייל ימצא לפי שם המשתמש שנרשם באפליקציה
+              </div>
+            </div>
+          )}
 
           {soldiers.length === 0 ? (
             <div className="empty-state">
@@ -337,7 +417,14 @@ export default function CreateFile() {
                 <div key={s.tempId} className="soldier-row">
                   <div className="soldier-avatar">{s.name[0]}</div>
                   <div className="soldier-info">
-                    <div className="soldier-name">{s.name}</div>
+                    <div className="soldier-name">
+                    {s.name}
+                    {s.type === "registered" && (
+                      <span style={{ fontSize: "0.72rem", background: "var(--olive)", color: "#fff", borderRadius: 4, padding: "1px 6px", marginRight: 6 }}>
+                        רשום
+                      </span>
+                    )}
+                  </div>
                     <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
                       {DAY_LABELS.map((d, di) => (
                         <div
