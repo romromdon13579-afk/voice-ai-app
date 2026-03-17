@@ -29,7 +29,7 @@ export default function Schedule() {
   const [chatMessages, setChatMessages] = useState([
     { role: "ai", text: isGeminiConfigured()
         ? "שלום! אני ה-AI של השיבוץ 🤖 שאל אותי כל דבר על הטבלה שלפניך."
-        : "⚠️ הצ'אט אינו פעיל — הגדר VITE_ANTHROPIC_API_KEY ב-.env להפעלה."
+        : "⚠️ הצ'אט אינו פעיל — הגדר VITE_GROQ_API_KEY בהגדרות Netlify להפעלה."
     }
   ]);
   const [chatConversation, setChatConversation] = useState([]);
@@ -107,7 +107,7 @@ export default function Schedule() {
       if (!usedAI) {
         setChatMessages(prev => [...prev, {
           role: "ai",
-          text: "השיבוץ חושב עם האלגוריתם המקומי (Claude לא זמין). הוסף VITE_ANTHROPIC_API_KEY לשיבוץ חכם יותר."
+          text: "השיבוץ חושב עם האלגוריתם המקומי (Groq לא זמין). הוסף VITE_GROQ_API_KEY בהגדרות Netlify לשיבוץ חכם יותר."
         }]);
       }
 

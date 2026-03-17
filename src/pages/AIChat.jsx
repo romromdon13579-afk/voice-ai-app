@@ -24,13 +24,13 @@ const SUGGESTED = [
 function MissingKeyBanner() {
   return (
     <div className="alert alert-warning" style={{ lineHeight: 1.7 }}>
-      <strong>⚠️ מפתח Claude API חסר</strong><br />
-      כדי להפעיל את הצ'אט החי יש להוסיף את מפתח ה-API לקובץ <code>.env</code>:<br />
+      <strong>⚠️ מפתח Groq API חסר</strong><br />
+      כדי להפעיל את הצ'אט יש להוסיף את מפתח ה-API (חינמי!) בהגדרות Netlify:<br />
       <code style={{ background: "rgba(0,0,0,0.08)", padding: "2px 6px", borderRadius: 4 }}>
-        VITE_ANTHROPIC_API_KEY=your-key-here
+        VITE_GROQ_API_KEY=your-key-here
       </code><br />
       <span style={{ fontSize: "0.82rem", opacity: 0.8 }}>
-        קבל מפתח ב: <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">console.anthropic.com</a>
+        קבל מפתח חינמי ב: <a href="https://console.groq.com" target="_blank" rel="noreferrer">console.groq.com</a>
       </span>
     </div>
   );
