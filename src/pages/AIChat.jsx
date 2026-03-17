@@ -75,6 +75,7 @@ export default function AIChat() {
       : await getGroupsForSoldier(currentUser.uid);
     setGroups(g);
     if (g.length > 0) setSelectedGroup(g[0]);
+    else setContextReady(true); // no groups — allow chat without context
   }
 
   async function loadContext() {
