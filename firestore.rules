@@ -1,0 +1,135 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Firestore Security Rules — שבצ"ק שמירות
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Role model:
+//   commander — created a group (commanderUid == request.auth.uid)
+//   soldier   — member of a group (uid in memberUids array)
+//
+// Principle: authenticated users can only access data they own or belong to.
+// ═══════════════════════════════════════════════════════════════════════════
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ─────────────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Returns the group document (used in subcollection rules)
+    function groupData(groupId) {
+      return get(/databases/$(database)/documents/groups/$(groupId)).data;
+    }
+
+    function isCommander(groupId) {
+      return isSignedIn() && groupData(groupId).commanderUid == request.auth.uid;
+    }
+
+    function isMember(groupId) {
+      return isSignedIn() && request.auth.uid in groupData(groupId).memberUids;
+    }
+
+    function isCommanderOrMember(groupId) {
+      return isCommander(groupId) || isMember(groupId);
+    }
+
+    // ── /users/{uid} ────────────────────────────────────────────────────────
+    // • Each user can read/write their own profile.
+    // • Any authenticated user can read basic profiles (needed for username
+    //   lookups when adding soldiers by username).
+
+    match /users/{uid} {
+      allow read:  if isSignedIn();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid);
+      allow delete: if false; // users are never deleted from here
+    }
+
+    // ── /groups/{groupId} ───────────────────────────────────────────────────
+    // • Commanders can create groups.
+    // • Only the group commander and its members can read the group document.
+    // • Only the commander can update or delete the group.
+
+    match /groups/{groupId} {
+      allow read:   if isSignedIn() && (
+                      resource.data.commanderUid == request.auth.uid ||
+                      request.auth.uid in resource.data.memberUids
+                    );
+      allow create: if isSignedIn();
+      allow update: if isCommander(groupId);
+      allow delete: if isCommander(groupId);
+
+      // ── /groups/{groupId}/soldiers/{soldierId} ───────────────────────────
+      // • Commander can add, edit, and remove soldiers.
+      // • Members (soldiers) can read the soldier list (to see who is in the group).
+
+      match /soldiers/{soldierId} {
+        allow read:   if isCommanderOrMember(groupId);
+        allow create: if isCommander(groupId);
+        allow update: if isCommander(groupId);
+        allow delete: if isCommander(groupId);
+      }
+
+      // ── /groups/{groupId}/tasks/{taskId} ────────────────────────────────
+      // • Both commanders and soldiers can read tasks (needed for scheduling).
+      // • Only commanders can create/edit/delete tasks.
+
+      match /tasks/{taskId} {
+        allow read:   if isCommanderOrMember(groupId);
+        allow create: if isCommander(groupId);
+        allow update: if isCommander(groupId);
+        allow delete: if isCommander(groupId);
+      }
+
+      // ── /groups/{groupId}/schedules/{scheduleId} ────────────────────────
+      // • All group members can read schedules (they need to see their shifts).
+      // • Only the commander can create/update/delete schedules.
+
+      match /schedules/{scheduleId} {
+        allow read:   if isCommanderOrMember(groupId);
+        allow create: if isCommander(groupId);
+        allow update: if isCommander(groupId);
+        allow delete: if isCommander(groupId);
+      }
+
+      // ── /groups/{groupId}/messages/{messageId} ──────────────────────────
+      // • A message is readable by:
+      //     - the group commander
+      //     - the specific recipient (recipientUid == uid)
+      //     - any member when the message is addressed to "all"
+      // • Any group member (including soldiers) can send messages.
+      // • Messages are immutable once sent (no update/delete).
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && (
+                      isCommander(groupId) ||
+                      resource.data.recipientUid == request.auth.uid ||
+                      resource.data.recipientUid == "all"
+                    );
+        allow create: if isCommanderOrMember(groupId)
+                      && request.resource.data.senderUid == request.auth.uid;
+        allow update: if false;
+        allow delete: if false;
+      }
+
+      // ── /groups/{groupId}/history/{historyId} ───────────────────────────
+      // • Commander reads/writes historical workload data.
+      // • Members can read history (used for workload display in AI chat).
+
+      match /history/{historyId} {
+        allow read:   if isCommanderOrMember(groupId);
+        allow create: if isCommander(groupId);
+        allow update: if isCommander(groupId);
+        allow delete: if isCommander(groupId);
+      }
+    }
+  }
+}

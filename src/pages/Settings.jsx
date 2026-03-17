@@ -6,6 +6,11 @@ import {
 } from "firebase/auth";
 import { auth } from "../firebase.js";
 
+function getNotifPermission() {
+  if (!("Notification" in window)) return "unsupported";
+  return Notification.permission;
+}
+
 export default function Settings() {
   const { currentUser, userProfile, setUserProfile } = useAuth();
 
@@ -30,6 +35,13 @@ export default function Settings() {
   const [passError, setPassError] = useState("");
   const [notifSuccess, setNotifSuccess] = useState("");
   const [saving, setSaving] = useState(false);
+  const [notifPermission, setNotifPermission] = useState(getNotifPermission);
+
+  async function requestNotifPermission() {
+    if (!("Notification" in window)) return;
+    const result = await Notification.requestPermission();
+    setNotifPermission(result);
+  }
 
   async function saveProfile(e) {
     e.preventDefault();
@@ -165,6 +177,25 @@ export default function Settings() {
       {/* Notifications */}
       <div className="card">
         <div className="card-header"><span>🔔</span><h3>הגדרות התראות</h3></div>
+
+        {/* Browser notification permission status */}
+        <div style={{ marginBottom: 20, padding: 14, background: "var(--gray-100)", borderRadius: "var(--radius-sm)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <strong>התראות דפדפן</strong>
+            <div style={{ fontSize: "0.85rem", color: "var(--gray-500)", marginTop: 2 }}>
+              {notifPermission === "granted"  && "✅ התראות מאופשרות — תקבל תזכורות לפני משמרות והודעות חדשות."}
+              {notifPermission === "denied"   && "❌ התראות חסומות — שנה את ההרשאה ישירות בהגדרות הדפדפן."}
+              {notifPermission === "default"  && "⚠️ לא הורשו עדיין — לחץ לאפשר."}
+              {notifPermission === "unsupported" && "הדפדפן שלך אינו תומך בהתראות."}
+            </div>
+          </div>
+          {notifPermission === "default" && (
+            <button className="btn btn-primary btn-sm" onClick={requestNotifPermission}>
+              🔔 אפשר התראות
+            </button>
+          )}
+        </div>
+
         {notifSuccess && <div className="alert alert-success">{notifSuccess}</div>}
         <form onSubmit={saveNotifications}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>

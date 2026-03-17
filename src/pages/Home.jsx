@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
   getGroupsForSoldier, getGroupsByCommander,
-  getSchedulesForGroup, getSoldiersInGroup
+  getSchedulesForGroup
 } from "../services/firestoreService.js";
+import { useNotifications } from "../hooks/useNotifications.js";
 
 export default function Home() {
   const { userProfile, currentUser, isCommander } = useAuth();
@@ -12,10 +13,16 @@ export default function Home() {
   const [groups, setGroups] = useState([]);
   const [todaySlots, setTodaySlots] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [notifPermission, setNotifPermission] = useState(
+    "Notification" in window ? Notification.permission : "unsupported"
+  );
 
   const today = new Date().toLocaleDateString("he-IL", {
     weekday: "long", day: "numeric", month: "long", year: "numeric"
   });
+
+  // Activate real-time notifications + pre-shift reminders
+  useNotifications({ currentUser, userProfile, groups, todaySlots });
 
   useEffect(() => {
     loadData();
@@ -24,19 +31,14 @@ export default function Home() {
   async function loadData() {
     try {
       setLoading(true);
-      let fetchedGroups = [];
-      if (isCommander) {
-        fetchedGroups = await getGroupsByCommander(currentUser.uid);
-      } else {
-        fetchedGroups = await getGroupsForSoldier(currentUser.uid);
-      }
+      const fetchedGroups = isCommander
+        ? await getGroupsByCommander(currentUser.uid)
+        : await getGroupsForSoldier(currentUser.uid);
       setGroups(fetchedGroups);
 
       if (fetchedGroups.length > 0) {
-        const start = new Date();
-        start.setHours(0, 0, 0, 0);
-        const end = new Date();
-        end.setHours(23, 59, 59, 999);
+        const start = new Date(); start.setHours(0, 0, 0, 0);
+        const end   = new Date(); end.setHours(23, 59, 59, 999);
 
         const allSlots = [];
         for (const g of fetchedGroups) {
@@ -44,8 +46,8 @@ export default function Home() {
           allSlots.push(...slots.map(s => ({ ...s, groupName: g.name })));
         }
         allSlots.sort((a, b) => {
-          const ta = a.startTime?.toDate ? a.startTime.toDate() : new Date(a.date + "T" + a.startTimeStr);
-          const tb = b.startTime?.toDate ? b.startTime.toDate() : new Date(b.date + "T" + b.startTimeStr);
+          const ta = a.startTime?.toDate ? a.startTime.toDate() : new Date(a.date + "T" + (a.startTimeStr || "00:00"));
+          const tb = b.startTime?.toDate ? b.startTime.toDate() : new Date(b.date + "T" + (b.startTimeStr || "00:00"));
           return ta - tb;
         });
         setTodaySlots(allSlots);
@@ -57,10 +59,26 @@ export default function Home() {
     }
   }
 
+  async function requestNotifPermission() {
+    if (!("Notification" in window)) return;
+    const result = await Notification.requestPermission();
+    setNotifPermission(result);
+  }
+
   const difficultyLabel = d => ["", "קל", "קל-בינוני", "בינוני", "קשה", "קשה מאוד"][d] || "";
 
   return (
     <div>
+      {/* Notification permission banner */}
+      {notifPermission === "default" && (
+        <div className="alert alert-warning" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <span>🔔 אפשר התראות כדי לקבל תזכורות לפני משמרות והודעות חדשות.</span>
+          <button className="btn btn-sm btn-primary" onClick={requestNotifPermission}>
+            אפשר התראות
+          </button>
+        </div>
+      )}
+
       {/* Greeting Banner */}
       <div className="greeting-banner">
         <div>
@@ -75,6 +93,11 @@ export default function Home() {
             {groups.length > 0 && (
               <span className="badge badge-yellow" style={{ marginRight: 8 }}>
                 📁 {groups[0]?.name}
+              </span>
+            )}
+            {notifPermission === "granted" && (
+              <span className="badge badge-olive" style={{ marginRight: 8 }}>
+                🔔 התראות פעילות
               </span>
             )}
           </div>
@@ -135,40 +158,38 @@ export default function Home() {
             )}
           </div>
         ) : (
-          <div>
-            <div className="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>שם הפעילות</th>
-                    <th>שעת התחלה</th>
-                    <th>שעת סיום</th>
-                    <th>מפקד הפעילות</th>
-                    <th>שותפים</th>
-                    <th>רמת קושי</th>
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>שם הפעילות</th>
+                  <th>שעת התחלה</th>
+                  <th>שעת סיום</th>
+                  <th>מפקד הפעילות</th>
+                  <th>שותפים</th>
+                  <th>רמת קושי</th>
+                </tr>
+              </thead>
+              <tbody>
+                {todaySlots.map((slot, i) => (
+                  <tr key={slot.id || i}>
+                    <td><strong>{slot.taskName}</strong></td>
+                    <td>{slot.startTimeStr || "—"}</td>
+                    <td>{slot.endTimeStr || "—"}</td>
+                    <td>{slot.commanderName || "—"}</td>
+                    <td>
+                      {slot.assignedSoldiers?.filter(s => s.id !== currentUser.uid)
+                        .map(s => s.name).join(", ") || "—"}
+                    </td>
+                    <td>
+                      <span className={`difficulty-badge diff-${slot.difficulty}`}>
+                        {"⭐".repeat(slot.difficulty || 1)} {difficultyLabel(slot.difficulty)}
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {todaySlots.map((slot, i) => (
-                    <tr key={i}>
-                      <td><strong>{slot.taskName}</strong></td>
-                      <td>{slot.startTimeStr || slot.startTime}</td>
-                      <td>{slot.endTimeStr || slot.endTime}</td>
-                      <td>{slot.commanderName || "—"}</td>
-                      <td>
-                        {slot.assignedSoldiers?.filter(s => s.id !== currentUser.uid)
-                          .map(s => s.name).join(", ") || "—"}
-                      </td>
-                      <td>
-                        <span className={`difficulty-badge diff-${slot.difficulty}`}>
-                          {"⭐".repeat(slot.difficulty || 1)} {difficultyLabel(slot.difficulty)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

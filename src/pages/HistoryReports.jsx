@@ -6,6 +6,34 @@ import {
 } from "../services/firestoreService.js";
 import { addDays, startOfDay, subDays, format } from "date-fns";
 
+// ── Export helpers ──────────────────────────────────────────────────────────
+
+function exportCSV(rows, filename) {
+  const headers = ["תאריך", "שעת התחלה", "שעת סיום", "משימה", "קושי", "חיילים משובצים"];
+  const lines = [
+    "\uFEFF" + headers.join(","), // BOM for Hebrew Excel support
+    ...rows.map(s => [
+      s.date || "",
+      s.startTimeStr || "",
+      s.endTimeStr || "",
+      `"${(s.taskName || "").replace(/"/g, '""')}"`,
+      s.difficulty || "",
+      `"${(s.assignedSoldiers?.map(a => a.name).join(", ") || "").replace(/"/g, '""')}"`
+    ].join(","))
+  ];
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement("a"), { href: url, download: filename });
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function printReport() {
+  window.print();
+}
+
 export default function HistoryReports() {
   const { currentUser, isCommander } = useAuth();
   const [groups, setGroups] = useState([]);
@@ -141,13 +169,31 @@ export default function HistoryReports() {
 
       {/* Results */}
       <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+          <h3 style={{ margin: 0 }}>
             {viewMode === "personal" ? "השמירות שלי" :
              viewMode === "specific" ? `שמירות — ${soldiers.find(s => s.id === selectedSoldier)?.name || ""}` :
              "שמירות הקבוצה"}
           </h3>
-          <span className="badge badge-olive">{filtered.length} רשומות</span>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span className="badge badge-olive">{filtered.length} רשומות</span>
+            {filtered.length > 0 && (
+              <>
+                <button
+                  className="btn btn-sm btn-outline"
+                  onClick={() => exportCSV(filtered, `שמירות_${selectedGroup?.name || "קבוצה"}_${dateRange}ימים.csv`)}
+                >
+                  ⬇️ CSV
+                </button>
+                <button
+                  className="btn btn-sm btn-outline"
+                  onClick={printReport}
+                >
+                  🖨️ הדפסה / PDF
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {loading ? (
