@@ -1,11 +1,12 @@
 /**
- * geminiService.js  (now powered by Claude API)
+ * geminiService.js  (now powered by Groq API — free tier)
  * ─────────────────────────────────────────────────────────────────────────
- * Drop-in replacement for the previous Gemini implementation.
+ * Drop-in replacement for the previous Gemini/Claude implementation.
  * All exported function names are kept identical so no other file needs changes.
  *
  * Configuration:
- *   Add  VITE_ANTHROPIC_API_KEY=<your-key>  to a local .env file.
+ *   Add  VITE_GROQ_API_KEY=<your-key>  to a local .env file.
+ *   Get a free key (no credit card) at: https://console.groq.com
  *   Never commit the .env file to source control.
  *
  * Exports:
@@ -15,9 +16,9 @@
  *   buildChatSystemPrompt({ groupName, soldiers, tasks, slots, workload }) → string
  */
 
-const API_KEY  = import.meta.env.VITE_ANTHROPIC_API_KEY;
-const MODEL    = "claude-haiku-4-5";
-const BASE_URL = "https://api.anthropic.com/v1/messages";
+const API_KEY  = import.meta.env.VITE_GROQ_API_KEY;
+const MODEL    = "llama-3.3-70b-versatile";
+const BASE_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 // ── Public helper ─────────────────────────────────────────────────────────
 
@@ -27,22 +28,22 @@ export function isGeminiConfigured() {
 
 // ── Core fetch wrapper ────────────────────────────────────────────────────
 
-async function callClaude(systemPrompt, userMessage) {
+async function callGroq(systemPrompt, userMessage) {
   if (!isGeminiConfigured()) throw new Error("MISSING_API_KEY");
 
   const res = await fetch(BASE_URL, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-api-key": API_KEY,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-allow-browser": "true"
+      "authorization": `Bearer ${API_KEY}`
     },
     body: JSON.stringify({
       model: MODEL,
       max_tokens: 2048,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }]
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user",   content: userMessage  }
+      ]
     })
   });
 
@@ -52,7 +53,7 @@ async function callClaude(systemPrompt, userMessage) {
   }
 
   const data = await res.json();
-  return data.content?.[0]?.text ?? "";
+  return data.choices?.[0]?.message?.content ?? "";
 }
 
 // ── Multi-turn chat ───────────────────────────────────────────────────────
@@ -61,7 +62,7 @@ async function callClaude(systemPrompt, userMessage) {
 export async function geminiChat(messages, systemPrompt) {
   if (!isGeminiConfigured()) throw new Error("MISSING_API_KEY");
 
-  // Convert internal format → Anthropic format (roles must alternate user/assistant)
+  // Convert internal format → OpenAI format
   const contents = messages.map(m => ({
     role: m.role === "ai" ? "assistant" : "user",
     content: m.text
@@ -71,15 +72,15 @@ export async function geminiChat(messages, systemPrompt) {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-api-key": API_KEY,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-allow-browser": "true"
+      "authorization": `Bearer ${API_KEY}`
     },
     body: JSON.stringify({
       model: MODEL,
       max_tokens: 1024,
-      system: systemPrompt,
-      messages: contents
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...contents
+      ]
     })
   });
 
@@ -89,7 +90,7 @@ export async function geminiChat(messages, systemPrompt) {
   }
 
   const data = await res.json();
-  return data.content?.[0]?.text ?? "";
+  return data.choices?.[0]?.message?.content ?? "";
 }
 
 // ── AI Scheduler ──────────────────────────────────────────────────────────
@@ -169,7 +170,7 @@ ${JSON.stringify(tasksContext, null, 2)}
 החזר שיבוץ מלא ל-${days} ימים החל מ-${startStr}.
 `;
 
-  const raw = await callClaude(systemPrompt, userMessage);
+  const raw = await callGroq(systemPrompt, userMessage);
   const cleaned = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
   const parsed = JSON.parse(cleaned);
   return parsed.slots ?? [];
