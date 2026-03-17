@@ -123,7 +123,7 @@ export default function Schedule() {
         assignedSoldiers: slot.assignedSoldiers,
         commanderName: userProfile?.displayName || "מפקד",
         groupId: selectedGroup.id,
-        startTime: new Date(slot.date + "T" + slot.startTime)
+        startTime: slot.date && slot.startTime ? new Date(slot.date + "T" + slot.startTime) : new Date()
       }));
 
       await saveBulkSchedule(selectedGroup.id, firestoreSlots);
@@ -147,10 +147,22 @@ export default function Schedule() {
     try {
       if (!isGeminiConfigured()) throw new Error("MISSING_API_KEY");
 
+      // Load context on demand if not yet populated (before first generate)
+      let soldiers = soldierContext;
+      let tasks = taskContext;
+      if (selectedGroup && soldiers.length === 0) {
+        [soldiers, tasks] = await Promise.all([
+          getSoldiersInGroup(selectedGroup.id),
+          getTasksForGroup(selectedGroup.id)
+        ]);
+        setSoldierContext(soldiers);
+        setTaskContext(tasks);
+      }
+
       const systemPrompt = buildChatSystemPrompt({
         groupName: selectedGroup?.name,
-        soldiers: soldierContext,
-        tasks: taskContext,
+        soldiers,
+        tasks,
         slots,
         workload
       });

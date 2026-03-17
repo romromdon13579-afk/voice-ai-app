@@ -415,7 +415,7 @@ export default function CreateFile() {
             <div>
               {soldiers.map((s, si) => (
                 <div key={s.tempId} className="soldier-row">
-                  <div className="soldier-avatar">{s.name[0]}</div>
+                  <div className="soldier-avatar">{(s.name || "?")[0]}</div>
                   <div className="soldier-info">
                     <div className="soldier-name">
                     {s.name}

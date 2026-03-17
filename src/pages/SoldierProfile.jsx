@@ -95,6 +95,10 @@ export default function SoldierProfile() {
 
   function addLeave() {
     if (!leaveStart || !leaveEnd) return;
+    if (new Date(leaveEnd) <= new Date(leaveStart)) {
+      alert("תאריך הסיום חייב להיות אחרי תאריך ההתחלה.");
+      return;
+    }
     setLeaves([...leaves, { startDate: leaveStart, endDate: leaveEnd }]);
     setLeaveStart(""); setLeaveEnd("");
   }

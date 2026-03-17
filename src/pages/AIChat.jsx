@@ -54,7 +54,7 @@ export default function AIChat() {
     {
       role: "ai",
       text: isGeminiConfigured()
-        ? "שלום! אני ה-AI של שבצ\"ק שמירות 🤖\nאני מחובר ל-Claude ומוכן לענות על כל שאלה בנוגע לשיבוצים, עומסי חיילים ולמה כל חייל שובץ לכל משימה.\nשאל אותי כל דבר!"
+        ? "שלום! אני ה-AI של שבצ\"ק שמירות 🤖\nאני מחובר ל-Groq ומוכן לענות על כל שאלה בנוגע לשיבוצים, עומסי חיילים ולמה כל חייל שובץ לכל משימה.\nשאל אותי כל דבר!"
         : "צ'אט ה-AI אינו זמין — מפתח API חסר.",
       time: new Date()
     }
@@ -70,46 +70,56 @@ export default function AIChat() {
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [displayMessages]);
 
   async function loadGroups() {
-    const g = isCommander
-      ? await getGroupsByCommander(currentUser.uid)
-      : await getGroupsForSoldier(currentUser.uid);
-    setGroups(g);
-    if (g.length > 0) setSelectedGroup(g[0]);
-    else setContextReady(true); // no groups — allow chat without context
+    try {
+      const g = isCommander
+        ? await getGroupsByCommander(currentUser.uid)
+        : await getGroupsForSoldier(currentUser.uid);
+      setGroups(g);
+      if (g.length > 0) setSelectedGroup(g[0]);
+      else setContextReady(true); // no groups — allow chat without context
+    } catch (err) {
+      console.error("Failed to load groups:", err);
+      setContextReady(true);
+    }
   }
 
   async function loadContext() {
     if (!selectedGroup) return;
     setContextReady(false);
-    const [soldierList, taskList, history] = await Promise.all([
-      getSoldiersInGroup(selectedGroup.id),
-      getTasksForGroup(selectedGroup.id),
-      getHistoryForGroup(selectedGroup.id)
-    ]);
-    setSoldiers(soldierList);
-    setTasks(taskList);
+    try {
+      const [soldierList, taskList, history] = await Promise.all([
+        getSoldiersInGroup(selectedGroup.id),
+        getTasksForGroup(selectedGroup.id),
+        getHistoryForGroup(selectedGroup.id)
+      ]);
+      setSoldiers(soldierList);
+      setTasks(taskList);
 
-    const end = new Date();
-    const start = subDays(end, 30);
-    const scheduleData = await getSchedulesForGroup(selectedGroup.id, startOfDay(start), end);
-    setSlots(scheduleData);
+      const end = new Date();
+      const start = subDays(end, 30);
+      const scheduleData = await getSchedulesForGroup(selectedGroup.id, startOfDay(start), end);
+      setSlots(scheduleData);
 
-    // Build workload map
-    const wl = {};
-    soldierList.forEach(s => { wl[s.id] = 0; });
-    history.forEach(h => {
-      if (wl[h.soldierId] !== undefined)
-        wl[h.soldierId] += (h.difficulty || 1) * (h.hours || 1);
-    });
-    scheduleData.forEach(s => {
-      s.assignedSoldiers?.forEach(a => {
-        if (wl[a.id] !== undefined) wl[a.id] += (s.difficulty || 1) * 4;
+      // Build workload map
+      const wl = {};
+      soldierList.forEach(s => { wl[s.id] = 0; });
+      history.forEach(h => {
+        if (wl[h.soldierId] !== undefined)
+          wl[h.soldierId] += (h.difficulty || 1) * (h.hours || 1);
       });
-    });
-    setWorkload(wl);
-    setContextReady(true);
-    // Reset conversation when group changes
-    setConversationHistory([]);
+      scheduleData.forEach(s => {
+        s.assignedSoldiers?.forEach(a => {
+          if (wl[a.id] !== undefined) wl[a.id] += (s.difficulty || 1) * 4;
+        });
+      });
+      setWorkload(wl);
+      // Reset conversation when group changes
+      setConversationHistory([]);
+    } catch (err) {
+      console.error("Failed to load context:", err);
+    } finally {
+      setContextReady(true);
+    }
   }
 
   async function handleSend(question) {
