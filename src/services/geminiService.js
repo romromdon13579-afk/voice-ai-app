@@ -1,21 +1,23 @@
 /**
- * geminiService.js
+ * geminiService.js  (now powered by Claude API)
  * ─────────────────────────────────────────────────────────────────────────
- * Centralised wrapper for all Google Gemini API calls.
+ * Drop-in replacement for the previous Gemini implementation.
+ * All exported function names are kept identical so no other file needs changes.
  *
  * Configuration:
- *   Add  VITE_GEMINI_API_KEY=<your-key>  to a local .env file.
+ *   Add  VITE_ANTHROPIC_API_KEY=<your-key>  to a local .env file.
  *   Never commit the .env file to source control.
  *
  * Exports:
- *   geminiChat(messages, systemPrompt)        → string (assistant reply)
- *   geminiSchedule(soldiers, tasks, history, startDate, days) → slots[]
- *   isGeminiConfigured()                       → boolean
+ *   geminiChat(messages, systemPrompt)                              → string
+ *   geminiSchedule({ soldiers, tasks, history, startDate, days })  → slots[]
+ *   isGeminiConfigured()                                           → boolean
+ *   buildChatSystemPrompt({ groupName, soldiers, tasks, slots, workload }) → string
  */
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const MODEL   = "gemini-2.0-flash";
-const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+const API_KEY  = import.meta.env.VITE_ANTHROPIC_API_KEY;
+const MODEL    = "claude-haiku-4-5";
+const BASE_URL = "https://api.anthropic.com/v1/messages";
 
 // ── Public helper ─────────────────────────────────────────────────────────
 
@@ -25,28 +27,23 @@ export function isGeminiConfigured() {
 
 // ── Core fetch wrapper ────────────────────────────────────────────────────
 
-async function callGemini(systemInstruction, userMessage) {
-  if (!isGeminiConfigured()) {
-    throw new Error("MISSING_API_KEY");
-  }
+async function callClaude(systemPrompt, userMessage) {
+  if (!isGeminiConfigured()) throw new Error("MISSING_API_KEY");
 
-  const body = {
-    system_instruction: {
-      parts: [{ text: systemInstruction }]
-    },
-    contents: [
-      { role: "user", parts: [{ text: userMessage }] }
-    ],
-    generationConfig: {
-      temperature: 0.4,
-      maxOutputTokens: 2048
-    }
-  };
-
-  const res = await fetch(`${BASE_URL}?key=${API_KEY}`, {
+  const res = await fetch(BASE_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": API_KEY,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-allow-browser": "true"
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMessage }]
+    })
   });
 
   if (!res.ok) {
@@ -55,31 +52,35 @@ async function callGemini(systemInstruction, userMessage) {
   }
 
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  return data.content?.[0]?.text ?? "";
 }
 
 // ── Multi-turn chat ───────────────────────────────────────────────────────
-// messages: [{ role: "user"|"model", text }]
+// messages: [{ role: "user"|"ai", text }]
 
 export async function geminiChat(messages, systemPrompt) {
   if (!isGeminiConfigured()) throw new Error("MISSING_API_KEY");
 
-  // Build contents array from conversation history
+  // Convert internal format → Anthropic format (roles must alternate user/assistant)
   const contents = messages.map(m => ({
-    role: m.role === "ai" ? "model" : "user",
-    parts: [{ text: m.text }]
+    role: m.role === "ai" ? "assistant" : "user",
+    content: m.text
   }));
 
-  const body = {
-    system_instruction: { parts: [{ text: systemPrompt }] },
-    contents,
-    generationConfig: { temperature: 0.5, maxOutputTokens: 1024 }
-  };
-
-  const res = await fetch(`${BASE_URL}?key=${API_KEY}`, {
+  const res = await fetch(BASE_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": API_KEY,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-allow-browser": "true"
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: contents
+    })
   });
 
   if (!res.ok) {
@@ -88,7 +89,7 @@ export async function geminiChat(messages, systemPrompt) {
   }
 
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  return data.content?.[0]?.text ?? "";
 }
 
 // ── AI Scheduler ──────────────────────────────────────────────────────────
@@ -96,13 +97,11 @@ export async function geminiChat(messages, systemPrompt) {
 export async function geminiSchedule({ soldiers, tasks, history, startDate, days }) {
   const activeSoldiers = soldiers.filter(s => s.active !== false);
 
-  // Build workload summary for context
   const workloadMap = {};
   activeSoldiers.forEach(s => { workloadMap[s.id] = 0; });
   history.forEach(h => {
-    if (workloadMap[h.soldierId] !== undefined) {
+    if (workloadMap[h.soldierId] !== undefined)
       workloadMap[h.soldierId] += (h.difficulty || 1) * (h.hours || 1);
-    }
   });
 
   const soldiersContext = activeSoldiers.map(s => ({
@@ -130,7 +129,7 @@ export async function geminiSchedule({ soldiers, tasks, history, startDate, days
     ? startDate.toISOString().slice(0, 10)
     : startDate;
 
-  const systemInstruction = `אתה מערכת שיבוץ צבאית מקצועית לצבא ישראל.
+  const systemPrompt = `אתה מערכת שיבוץ צבאית מקצועית לצבא ישראל.
 תפקידך: לחשב שיבוץ שמירות הוגן ומאוזן לחיילים.
 
 כללים מחייבים:
@@ -170,9 +169,7 @@ ${JSON.stringify(tasksContext, null, 2)}
 החזר שיבוץ מלא ל-${days} ימים החל מ-${startStr}.
 `;
 
-  const raw = await callGemini(systemInstruction, userMessage);
-
-  // Parse JSON — strip any accidental markdown fences
+  const raw = await callClaude(systemPrompt, userMessage);
   const cleaned = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
   const parsed = JSON.parse(cleaned);
   return parsed.slots ?? [];

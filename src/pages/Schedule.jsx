@@ -29,7 +29,7 @@ export default function Schedule() {
   const [chatMessages, setChatMessages] = useState([
     { role: "ai", text: isGeminiConfigured()
         ? "שלום! אני ה-AI של השיבוץ 🤖 שאל אותי כל דבר על הטבלה שלפניך."
-        : "⚠️ הצ'אט אינו פעיל — הגדר VITE_GEMINI_API_KEY ב-.env להפעלה."
+        : "⚠️ הצ'אט אינו פעיל — הגדר VITE_ANTHROPIC_API_KEY ב-.env להפעלה."
     }
   ]);
   const [chatConversation, setChatConversation] = useState([]);
@@ -107,7 +107,7 @@ export default function Schedule() {
       if (!usedAI) {
         setChatMessages(prev => [...prev, {
           role: "ai",
-          text: "השיבוץ חושב עם האלגוריתם המקומי (Gemini לא זמין). הוסף VITE_GEMINI_API_KEY לשיבוץ חכם יותר."
+          text: "השיבוץ חושב עם האלגוריתם המקומי (Claude לא זמין). הוסף VITE_ANTHROPIC_API_KEY לשיבוץ חכם יותר."
         }]);
       }
 
@@ -311,7 +311,7 @@ export default function Schedule() {
               <div key={i} className={`chat-bubble ${msg.role}`}>
                 {msg.role === "ai" && (
                   <strong style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", opacity: 0.7 }}>
-                    🤖 Gemini AI
+                    🤖 Claude AI
                   </strong>
                 )}
                 <span style={{ whiteSpace: "pre-wrap" }}>{msg.text}</span>
@@ -321,7 +321,7 @@ export default function Schedule() {
               <div className="chat-bubble ai">
                 <span style={{ display: "flex", gap: 6, alignItems: "center", fontSize: "0.85rem" }}>
                   <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2, margin: 0 }} />
-                  Gemini חושב...
+                  Claude חושב...
                 </span>
               </div>
             )}

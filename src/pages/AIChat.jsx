@@ -24,13 +24,13 @@ const SUGGESTED = [
 function MissingKeyBanner() {
   return (
     <div className="alert alert-warning" style={{ lineHeight: 1.7 }}>
-      <strong>⚠️ מפתח Gemini API חסר</strong><br />
+      <strong>⚠️ מפתח Claude API חסר</strong><br />
       כדי להפעיל את הצ'אט החי יש להוסיף את מפתח ה-API לקובץ <code>.env</code>:<br />
       <code style={{ background: "rgba(0,0,0,0.08)", padding: "2px 6px", borderRadius: 4 }}>
-        VITE_GEMINI_API_KEY=your-key-here
+        VITE_ANTHROPIC_API_KEY=your-key-here
       </code><br />
       <span style={{ fontSize: "0.82rem", opacity: 0.8 }}>
-        קבל מפתח בחינם ב: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">aistudio.google.com</a>
+        קבל מפתח ב: <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">console.anthropic.com</a>
       </span>
     </div>
   );
@@ -54,7 +54,7 @@ export default function AIChat() {
     {
       role: "ai",
       text: isGeminiConfigured()
-        ? "שלום! אני ה-AI של שבצ\"ק שמירות 🤖\nאני מחובר ל-Gemini ומוכן לענות על כל שאלה בנוגע לשיבוצים, עומסי חיילים ולמה כל חייל שובץ לכל משימה.\nשאל אותי כל דבר!"
+        ? "שלום! אני ה-AI של שבצ\"ק שמירות 🤖\nאני מחובר ל-Claude ומוכן לענות על כל שאלה בנוגע לשיבוצים, עומסי חיילים ולמה כל חייל שובץ לכל משימה.\nשאל אותי כל דבר!"
         : "צ'אט ה-AI אינו זמין — מפתח API חסר.",
       time: new Date()
     }
@@ -170,7 +170,7 @@ export default function AIChat() {
           <h2>צ'אט שאלות AI</h2>
           <div style={{ marginRight: "auto", display: "flex", alignItems: "center", gap: 10 }}>
             {geminiReady
-              ? <span className="badge badge-success">✓ Gemini מחובר</span>
+              ? <span className="badge badge-success">✓ Claude מחובר</span>
               : <span className="badge badge-danger">✗ API לא מוגדר</span>
             }
             <select
@@ -227,7 +227,7 @@ export default function AIChat() {
                 }}
               >
                 <div style={{ fontSize: "0.72rem", color: "var(--gray-500)", marginBottom: 2 }}>
-                  {msg.role === "user" ? `👤 ${userProfile?.displayName || "אתה"}` : "🤖 Gemini AI"} • {formatTime(msg.time)}
+                  {msg.role === "user" ? `👤 ${userProfile?.displayName || "אתה"}` : "🤖 Claude AI"} • {formatTime(msg.time)}
                 </div>
                 <div
                   className={`chat-bubble ${msg.role}`}
@@ -246,7 +246,7 @@ export default function AIChat() {
                 <div className="chat-bubble ai">
                   <span style={{ display: "flex", gap: 4, alignItems: "center" }}>
                     <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2, margin: 0 }} />
-                    Gemini חושב...
+                    Claude חושב...
                   </span>
                 </div>
               </div>
