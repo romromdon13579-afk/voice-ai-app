@@ -266,7 +266,7 @@ export default function CreateFile() {
             />
           </div>
 
-          <div style={{ marginBottom: 12, fontWeight: 700, color: "var(--olive)" }}>
+          <div style={{ marginBottom: 12, fontWeight: 700, color: "var(--primary)" }}>
             רשימת משימות
           </div>
 
@@ -420,7 +420,7 @@ export default function CreateFile() {
                     <div className="soldier-name">
                     {s.name}
                     {s.type === "registered" && (
-                      <span style={{ fontSize: "0.72rem", background: "var(--olive)", color: "#fff", borderRadius: 4, padding: "1px 6px", marginRight: 6 }}>
+                      <span style={{ fontSize: "0.72rem", background: "var(--primary)", color: "#fff", borderRadius: 4, padding: "1px 6px", marginRight: 6 }}>
                         רשום
                       </span>
                     )}

@@ -271,7 +271,7 @@ export default function Schedule() {
             {Object.keys(slotsByDate).sort().map(dateKey => (
               <div key={dateKey} style={{ marginBottom: 24 }}>
                 <h3 style={{
-                  color: "var(--olive)", marginBottom: 12,
+                  color: "var(--primary)", marginBottom: 12,
                   paddingBottom: 8, borderBottom: "2px solid var(--gray-200)"
                 }}>
                   📅 {formatDateHe(dateKey)}

@@ -67,10 +67,10 @@ export default function Messages() {
                 style={{
                   padding: "14px 16px",
                   borderRadius: "var(--radius-sm)",
-                  background: selectedMsg?.id === msg.id ? "#eef2e8" : "var(--gray-100)",
+                  background: selectedMsg?.id === msg.id ? "var(--accent-light)" : "var(--gray-100)",
                   marginBottom: 8,
                   cursor: "pointer",
-                  borderRight: "3px solid var(--olive)",
+                  borderRight: "3px solid var(--primary)",
                   transition: "background 0.2s"
                 }}
                 onClick={() => setSelectedMsg(selectedMsg?.id === msg.id ? null : msg)}

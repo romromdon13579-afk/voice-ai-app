@@ -248,11 +248,11 @@ export default function HistoryReports() {
           <div className="card-header"><span>📈</span><h3>סיכום</h3></div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
             <div style={{ textAlign: "center", padding: 16, background: "var(--gray-100)", borderRadius: "var(--radius-sm)" }}>
-              <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--olive)" }}>{filtered.length}</div>
+              <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--primary)" }}>{filtered.length}</div>
               <div style={{ color: "var(--gray-500)", fontSize: "0.85rem" }}>סה"כ שמירות</div>
             </div>
             <div style={{ textAlign: "center", padding: 16, background: "var(--gray-100)", borderRadius: "var(--radius-sm)" }}>
-              <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--olive)" }}>
+              <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--primary)" }}>
                 {Math.round(filtered.reduce((sum, s) => {
                   if (!s.startTimeStr || !s.endTimeStr) return sum;
                   const [sh, sm] = s.startTimeStr.split(":").map(Number);
@@ -265,7 +265,7 @@ export default function HistoryReports() {
               <div style={{ color: "var(--gray-500)", fontSize: "0.85rem" }}>שעות שמירה</div>
             </div>
             <div style={{ textAlign: "center", padding: 16, background: "var(--gray-100)", borderRadius: "var(--radius-sm)" }}>
-              <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--olive)" }}>
+              <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--primary)" }}>
                 {(filtered.reduce((sum, s) => sum + (s.difficulty || 1), 0) / filtered.length).toFixed(1)}
               </div>
               <div style={{ color: "var(--gray-500)", fontSize: "0.85rem" }}>ממוצע רמת קושי</div>

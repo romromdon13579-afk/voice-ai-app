@@ -289,7 +289,7 @@ export default function AIChat() {
         {/* Workload summary */}
         {soldiers.length > 0 && (
           <div style={{ marginTop: 20 }}>
-            <h3 style={{ marginBottom: 12, color: "var(--olive)" }}>עומסי חיילים נוכחיים</h3>
+            <h3 style={{ marginBottom: 12, color: "var(--primary)" }}>עומסי חיילים נוכחיים</h3>
             {[...soldiers]
               .sort((a, b) => (workload[b.id] || 0) - (workload[a.id] || 0))
               .slice(0, 8)
@@ -306,7 +306,7 @@ export default function AIChat() {
                     <div style={{ height: 8, background: "var(--gray-200)", borderRadius: 4, overflow: "hidden" }}>
                       <div style={{
                         height: "100%", width: `${pct}%`,
-                        background: pct > 80 ? "var(--danger)" : pct > 50 ? "var(--yellow-dark)" : "var(--olive)",
+                        background: pct > 80 ? "var(--danger)" : pct > 50 ? "var(--warning)" : "var(--primary)",
                         borderRadius: 4, transition: "width 0.5s"
                       }} />
                     </div>

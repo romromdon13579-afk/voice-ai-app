@@ -58,13 +58,16 @@ export default function Login() {
     <div className="login-page">
       <div className="login-box">
         <div className="login-logo">
-          <div className="login-logo-icon">🪖</div>
-          <h1>שבצ"ק שמירות</h1>
+          <div className="login-logo-icon">
+            <img src="/favicon.svg" alt="לוגו" style={{ width: 80, height: 80 }} />
+          </div>
+          <h1>ניהול שבצ"ק חכם</h1>
           <p>מערכת שיבוץ חיילים אוטומטית</p>
           <div style={{
-            marginTop: 8, fontSize: "0.82rem", color: "var(--olive)",
-            background: "var(--gray-100)", padding: "4px 12px",
-            borderRadius: 20, display: "inline-block", fontWeight: 600
+            marginTop: 10, fontSize: "0.8rem", color: "var(--gray-500)",
+            background: "var(--gray-100)", padding: "4px 14px",
+            borderRadius: 20, display: "inline-block", fontWeight: 600,
+            border: "1px solid var(--gray-200)"
           }}>
             📅 {today}
           </div>
@@ -104,7 +107,7 @@ export default function Login() {
 
             <div style={{ textAlign: "center", marginTop: 16, fontSize: "0.88rem" }}>
               <span
-                style={{ color: "var(--olive)", cursor: "pointer", textDecoration: "underline" }}
+                style={{ color: "var(--accent)", cursor: "pointer", textDecoration: "underline" }}
                 onClick={() => setMode("forgot")}
               >
                 שכחתי סיסמה
@@ -112,7 +115,7 @@ export default function Login() {
               <span style={{ margin: "0 10px", color: "var(--gray-300)" }}>|</span>
               <Link
                 to="/register"
-                style={{ color: "var(--olive)", textDecoration: "underline" }}
+                style={{ color: "var(--accent)", textDecoration: "underline" }}
               >
                 אין לכם משתמש עדיין?
               </Link>
@@ -139,7 +142,7 @@ export default function Login() {
             </button>
             <div style={{ textAlign: "center", marginTop: 12 }}>
               <span
-                style={{ color: "var(--olive)", cursor: "pointer", fontSize: "0.88rem", textDecoration: "underline" }}
+                style={{ color: "var(--accent)", cursor: "pointer", fontSize: "0.88rem", textDecoration: "underline" }}
                 onClick={() => setMode("login")}
               >
                 ← חזרה לכניסה

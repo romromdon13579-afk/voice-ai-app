@@ -49,7 +49,7 @@ export default function Help() {
                 border: "2px solid transparent",
                 transition: "all 0.2s"
               }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = "var(--olive)"}
+              onMouseEnter={e => e.currentTarget.style.borderColor = "var(--primary)"}
               onMouseLeave={e => e.currentTarget.style.borderColor = "transparent"}
               onClick={() => alert(`סרטון "${v.title}" יתווסף בקרוב 🎥`)}
             >

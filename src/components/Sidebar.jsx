@@ -3,14 +3,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext.jsx";
 
 const soldierNav = [
-  { path: "/", icon: "🏠", label: "דף הבית" },
-  { path: "/schedule", icon: "📋", label: "משימות" },
-  { path: "/history", icon: "📊", label: "דיווח עבר" },
-  { path: "/send-message", icon: "✉️", label: "שליחת הודעה למפקד" },
-  { path: "/messages", icon: "🔔", label: "הודעות" },
-  { path: "/ai-chat", icon: "🤖", label: "צ'אט AI" },
-  { path: "/help", icon: "❓", label: "עזרה" },
-  { path: "/settings", icon: "⚙️", label: "הגדרות" },
+  { path: "/",            icon: "🏠", label: "דף הבית" },
+  { path: "/schedule",    icon: "📋", label: "משימות" },
+  { path: "/history",     icon: "📊", label: "דיווח עבר" },
+  { path: "/send-message",icon: "✉️", label: "שליחת הודעה למפקד" },
+  { path: "/messages",    icon: "🔔", label: "הודעות" },
+  { path: "/ai-chat",     icon: "🤖", label: "צ'אט AI" },
+  { path: "/help",        icon: "❓", label: "עזרה" },
+  { path: "/settings",    icon: "⚙️", label: "הגדרות" },
 ];
 
 const commanderExtra = [
@@ -37,27 +37,38 @@ export default function Sidebar() {
   return (
     <>
       <nav className="sidebar">
+        {/* Header */}
         <div className="sidebar-header">
-          <div style={{ fontSize: "2rem", marginBottom: 4 }}>🪖</div>
-          <div className="sidebar-title">שבצ"ק שמירות</div>
+          <img src="/favicon.svg" alt="לוגו" className="sidebar-logo-img" />
+          <div className="sidebar-title">ניהול שבצ"ק חכם</div>
           <div className="sidebar-subtitle">מערכת שיבוץ חיילים</div>
         </div>
 
+        {/* User info */}
         <div className="sidebar-user">
-          <div style={{ fontWeight: 700, fontSize: "0.9rem" }}>
+          <div className="sidebar-user-name">
             שלום, {userProfile.displayName || userProfile.username}
           </div>
-          <div style={{ fontSize: "0.78rem", opacity: 0.7, marginTop: 2 }}>
-            {isCommander ? "🎖️ מפקד" : "👤 חייל"} •{" "}
-            {new Date().toLocaleDateString("he-IL", { weekday: "long", day: "numeric", month: "long" })}
+          <div className="sidebar-user-meta">
+            <span className="sidebar-user-badge">
+              {isCommander ? "🎖️ מפקד" : "👤 חייל"}
+            </span>
+            <span>
+              {new Date().toLocaleDateString("he-IL", {
+                weekday: "short",
+                day: "numeric",
+                month: "long",
+              })}
+            </span>
           </div>
         </div>
 
+        {/* Navigation */}
         <div className="sidebar-nav">
           {navItems.map(item => (
             <div
               key={item.path}
-              className={`sidebar-nav-item ${location.pathname === item.path ? "active" : ""}`}
+              className={`sidebar-nav-item${location.pathname === item.path ? " active" : ""}`}
               onClick={() => navigate(item.path)}
             >
               <span className="sidebar-nav-icon">{item.icon}</span>
@@ -66,15 +77,15 @@ export default function Sidebar() {
           ))}
         </div>
 
+        {/* Footer / Logout */}
         <div className="sidebar-footer">
-          <div
-            className="sidebar-nav-item"
+          <button
+            className="sidebar-logout-btn"
             onClick={() => setShowLogoutModal(true)}
-            style={{ color: "#ff8a80", padding: "10px 4px" }}
           >
             <span className="sidebar-nav-icon">🚪</span>
             <span>התנתק</span>
-          </div>
+          </button>
         </div>
       </nav>
 
@@ -82,18 +93,23 @@ export default function Sidebar() {
         <div className="modal-backdrop">
           <div className="modal" style={{ maxWidth: 380 }}>
             <div className="modal-header">
-              <h3>התנתקות</h3>
+              <h3>התנתקות מהמערכת</h3>
             </div>
             <div className="modal-body" style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "3rem", marginBottom: 12 }}>🚪</div>
-              <p>האם אתה בטוח שאתה רוצה להתנתק?</p>
+              <div style={{ fontSize: "2.8rem", marginBottom: 14 }}>🚪</div>
+              <p style={{ color: "var(--gray-600)" }}>
+                האם אתה בטוח שאתה רוצה להתנתק?
+              </p>
             </div>
-            <div className="modal-footer" style={{ justifyContent: "center", gap: 12 }}>
-              <button className="btn btn-outline" onClick={() => setShowLogoutModal(false)}>
-                אני רוצה להישאר
+            <div className="modal-footer" style={{ justifyContent: "center" }}>
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowLogoutModal(false)}
+              >
+                ביטול
               </button>
               <button className="btn btn-danger" onClick={handleLogout}>
-                מעדיף לצאת
+                כן, התנתק
               </button>
             </div>
           </div>

@@ -148,7 +148,7 @@ export default function Register() {
 
           <div style={{ textAlign: "center", marginTop: 14, fontSize: "0.88rem" }}>
             כבר יש לך חשבון?{" "}
-            <Link to="/login" style={{ color: "var(--olive)", textDecoration: "underline" }}>
+            <Link to="/login" style={{ color: "var(--primary)", textDecoration: "underline" }}>
               כניסה למערכת
             </Link>
           </div>
