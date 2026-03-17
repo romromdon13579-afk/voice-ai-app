@@ -13,10 +13,10 @@ const DAY_NAMES_HE = ["ראשון", "שני", "שלישי", "רביעי", "חמ�
 // ── Public entry point ─────────────────────────────────────────────────────
 // Returns { slots, usedAI } where usedAI is true when Gemini was used.
 
-export async function computeSchedule({ soldiers, tasks, history, startDate, days = 7 }) {
+export async function computeSchedule({ soldiers, tasks, history, startDate, days = 7, requirements = "" }) {
   if (isGeminiConfigured()) {
     try {
-      const slots = await geminiSchedule({ soldiers, tasks, history, startDate, days });
+      const slots = await geminiSchedule({ soldiers, tasks, history, startDate, days, requirements });
       if (slots && slots.length > 0) {
         return { slots, usedAI: true };
       }
@@ -62,6 +62,10 @@ export function computeLocalSchedule({ soldiers, tasks, history, startDate, days
           workload[s.id] = (workload[s.id] || 0) + (task.difficulty || 1) * hours;
         });
 
+        // Separate task commander (role=commander) from regular soldiers
+        const commanderAssigned = assigned.find(s => s.role === "commander") || null;
+        const regularSoldiers = assigned.filter(s => s.role !== "commander");
+
         slots.push({
           date: format(currentDate, "yyyy-MM-dd"),
           startTime: slot.start,
@@ -69,7 +73,8 @@ export function computeLocalSchedule({ soldiers, tasks, history, startDate, days
           taskId: task.id,
           taskName: task.name,
           difficulty: task.difficulty || 1,
-          assignedSoldiers: assigned.map(s => ({ id: s.id, name: s.name || s.displayName })),
+          taskCommander: commanderAssigned ? { id: commanderAssigned.id, name: commanderAssigned.name || commanderAssigned.displayName } : null,
+          assignedSoldiers: regularSoldiers.map(s => ({ id: s.id, name: s.name || s.displayName })),
           dayOfWeek: DAY_NAMES_HE[dayOfWeek]
         });
       }

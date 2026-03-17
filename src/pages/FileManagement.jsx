@@ -19,7 +19,7 @@ export default function FileManagement() {
   const [search, setSearch] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [addForm, setAddForm] = useState({ username: "", displayName: "", manual: false });
+  const [addForm, setAddForm] = useState({ username: "", displayName: "", manual: false, role: "soldier" });
   const [addError, setAddError] = useState("");
   const [addLoading, setAddLoading] = useState(false);
 
@@ -63,19 +63,19 @@ export default function FileManagement() {
     try {
       let soldierData;
       if (addForm.manual) {
-        soldierData = { displayName: addForm.displayName, name: addForm.displayName, uid: null };
+        soldierData = { displayName: addForm.displayName, name: addForm.displayName, uid: null, role: addForm.role };
       } else {
         const user = await getUserByUsername(addForm.username);
         if (!user) {
           setAddError("שם משתמש לא נמצא במערכת.");
           return;
         }
-        soldierData = { displayName: user.displayName, name: user.displayName, uid: user.id, username: addForm.username };
+        soldierData = { displayName: user.displayName, name: user.displayName, uid: user.id, username: addForm.username, role: addForm.role };
       }
       await addSoldierToGroup(selectedGroup.id, soldierData);
       await loadSoldiers();
       setShowAddModal(false);
-      setAddForm({ username: "", displayName: "", manual: false });
+      setAddForm({ username: "", displayName: "", manual: false, role: "soldier" });
     } catch (err) {
       setAddError("שגיאה בהוספת החייל.");
     } finally {
@@ -193,6 +193,9 @@ export default function FileManagement() {
                       <span className={`badge ${soldier.active === false ? "badge-gray" : "badge-success"}`}>
                         {soldier.active === false ? "לא פעיל" : "פעיל"}
                       </span>
+                      {soldier.role === "commander" && (
+                        <span className="badge badge-warning" style={{ marginRight: 4 }}>⭐ מפקד משימה</span>
+                      )}
                     </div>
                   </div>
                   <div className="soldier-actions">
@@ -277,6 +280,29 @@ export default function FileManagement() {
                   />
                 </div>
               )}
+
+              <div className="form-group" style={{ marginTop: 16 }}>
+                <label className="form-label">תפקיד בשמירה</label>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${addForm.role === "soldier" ? "btn-primary" : "btn-outline"}`}
+                    onClick={() => setAddForm({ ...addForm, role: "soldier" })}
+                  >
+                    🪖 חייל
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${addForm.role === "commander" ? "btn-yellow" : "btn-outline"}`}
+                    onClick={() => setAddForm({ ...addForm, role: "commander" })}
+                  >
+                    ⭐ מפקד משימה
+                  </button>
+                </div>
+                <p style={{ fontSize: "0.8rem", color: "var(--gray-500)", marginTop: 6 }}>
+                  מפקד משימה ישובץ כמפקד בכל פעילות, חייל ישובץ כחייל רגיל.
+                </p>
+              </div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-outline" onClick={() => setShowAddModal(false)}>ביטול</button>

@@ -212,3 +212,14 @@ export async function getHistoryForGroup(groupId) {
   const snap = await getDocs(collection(db, "groups", groupId, "history"));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
+
+export async function updateScheduleSlot(groupId, slotId, data) {
+  await updateDoc(doc(db, "groups", groupId, "schedules", slotId), data);
+}
+
+export async function addHistoryEntry(groupId, entry) {
+  await addDoc(collection(db, "groups", groupId, "history"), {
+    ...entry,
+    addedAt: Timestamp.now()
+  });
+}

@@ -10,10 +10,11 @@
  *   Never commit the .env file to source control.
  *
  * Exports:
- *   geminiChat(messages, systemPrompt)                              → string
- *   geminiSchedule({ soldiers, tasks, history, startDate, days })  → slots[]
- *   isGeminiConfigured()                                           → boolean
- *   buildChatSystemPrompt({ groupName, soldiers, tasks, slots, workload }) → string
+ *   geminiChat(messages, systemPrompt)                                        → string
+ *   geminiSchedule({ soldiers, tasks, history, startDate, days, requirements }) → slots[]
+ *   isGeminiConfigured()                                                      → boolean
+ *   buildChatSystemPrompt({ groupName, soldiers, tasks, slots, workload })    → string
+ *   buildRequirementsChatSystemPrompt({ groupName, soldiers, tasks, slots })  → string
  */
 
 const API_KEY  = import.meta.env.VITE_GROQ_API_KEY;
@@ -94,8 +95,9 @@ export async function geminiChat(messages, systemPrompt) {
 }
 
 // ── AI Scheduler ──────────────────────────────────────────────────────────
+// requirements (optional) = free-text special requirements from commander
 
-export async function geminiSchedule({ soldiers, tasks, history, startDate, days }) {
+export async function geminiSchedule({ soldiers, tasks, history, startDate, days, requirements = "" }) {
   const activeSoldiers = soldiers.filter(s => s.active !== false);
 
   const workloadMap = {};
@@ -108,6 +110,7 @@ export async function geminiSchedule({ soldiers, tasks, history, startDate, days
   const soldiersContext = activeSoldiers.map(s => ({
     id: s.id,
     name: s.name || s.displayName,
+    role: s.role || "soldier",   // "commander" | "soldier"
     activeDays: s.activeDays ?? [0,1,2,3,4,5,6],
     leaves: (s.leaves || []).map(l => ({
       from: typeof l.startDate === "string" ? l.startDate : l.startDate?.toDate?.()?.toISOString?.() ?? "",
@@ -130,6 +133,10 @@ export async function geminiSchedule({ soldiers, tasks, history, startDate, days
     ? startDate.toISOString().slice(0, 10)
     : startDate;
 
+  const requirementsSection = requirements
+    ? `\n\nדרישות מיוחדות של המפקד (חובה לקחת בחשבון):\n${requirements}`
+    : "";
+
   const systemPrompt = `אתה מערכת שיבוץ צבאית מקצועית לצבא ישראל.
 תפקידך: לחשב שיבוץ שמירות הוגן ומאוזן לחיילים.
 
@@ -140,6 +147,7 @@ export async function geminiSchedule({ soldiers, tasks, history, startDate, days
 4. העדפות — preferences[taskId] גבוה יותר = עדיפות גבוהה יותר לאותה משימה.
 5. participantsNeeded — שבץ בדיוק את הכמות הנדרשת לכל משימה בכל סבב.
 6. כיסוי מלא — כסה את כל הסבבים של כל משימה בכל יום פעיל.
+7. תפקידים: חייל עם role="commander" ישובץ כ-taskCommander בפעילות; חייל עם role="soldier" ישובץ ב-assignedSoldiers בלבד. אם אין מפקד זמין — taskCommander יהיה null.
 
 פורמט תגובה — JSON בלבד, ללא הסברים, ללא markdown, ללא קוד-בלוק:
 {
@@ -152,6 +160,7 @@ export async function geminiSchedule({ soldiers, tasks, history, startDate, days
       "startTime": "HH:MM",
       "endTime": "HH:MM",
       "difficulty": 1-5,
+      "taskCommander": {"id":"...","name":"..."} or null,
       "assignedSoldiers": [{"id":"...","name":"..."}]
     }
   ]
@@ -166,6 +175,7 @@ ${JSON.stringify(soldiersContext, null, 2)}
 
 משימות:
 ${JSON.stringify(tasksContext, null, 2)}
+${requirementsSection}
 
 החזר שיבוץ מלא ל-${days} ימים החל מ-${startStr}.
 `;
@@ -182,18 +192,22 @@ export function buildChatSystemPrompt({ groupName, soldiers, tasks, slots, workl
   const soldiersStr = soldiers.map(s => {
     const wl = workload[s.id] || 0;
     const assignedCount = slots.filter(sl =>
-      sl.assignedSoldiers?.some(a => a.id === s.id)
+      sl.assignedSoldiers?.some(a => a.id === s.id) || sl.taskCommander?.id === s.id
     ).length;
-    return `- ${s.name || s.displayName}: עומס=${Math.round(wl)}, שמירות ב-30 יום=${assignedCount}, פעיל=${s.active !== false ? "כן" : "לא"}`;
+    const roleLabel = s.role === "commander" ? "מפקד משימה" : "חייל";
+    return `- ${s.name || s.displayName} [${roleLabel}]: עומס=${Math.round(wl)}, שמירות ב-30 יום=${assignedCount}, פעיל=${s.active !== false ? "כן" : "לא"}`;
   }).join("\n");
 
   const tasksStr = tasks.map(t =>
     `- ${t.name}: קושי ${t.difficulty}, נדרשים ${t.participantsNeeded} משתתפים`
   ).join("\n");
 
-  const recentSlots = slots.slice(0, 50).map(sl =>
-    `${sl.date} ${sl.startTimeStr || sl.startTime}–${sl.endTimeStr || sl.endTime}: ${sl.taskName} → ${sl.assignedSoldiers?.map(a => a.name).join(", ")}`
-  ).join("\n");
+  const recentSlots = slots.slice(0, 50).map(sl => {
+    const commander = sl.taskCommander ? `מפקד: ${sl.taskCommander.name}` : "";
+    const soldiers = sl.assignedSoldiers?.map(a => a.name).join(", ") || "";
+    const assigned = [commander, soldiers].filter(Boolean).join(" | חיילים: ");
+    return `${sl.date} ${sl.startTimeStr || sl.startTime}–${sl.endTimeStr || sl.endTime}: ${sl.taskName} → ${assigned}`;
+  }).join("\n");
 
   return `אתה עוזר AI חכם של מערכת שבצ"ק שמירות לקבוצה "${groupName || "הקבוצה"}".
 תפקידך: לענות בעברית על שאלות בנוגע לשיבוצים, עומסי חיילים, והסברים על החלטות השיבוץ.
@@ -213,4 +227,38 @@ ${recentSlots || "אין שיבוצים עדיין"}
 - התבסס אך ורק על הנתונים שקיבלת — אל תמציא מידע.
 - אם אין מידע מספק, ציין זאת בכנות.
 - כשמסבירים שיבוץ — ציין את הסיבות: עומס, עדיפות, זמינות.`;
+}
+
+// ── Requirements chat system prompt ───────────────────────────────────────
+// Used when commander chats with AI to define special scheduling requirements
+
+export function buildRequirementsChatSystemPrompt({ groupName, soldiers, tasks, slots = [] }) {
+  const soldiersStr = soldiers.map(s => {
+    const roleLabel = s.role === "commander" ? "מפקד משימה" : "חייל";
+    return `- ${s.name || s.displayName} [${roleLabel}]`;
+  }).join("\n");
+
+  const tasksStr = tasks.map(t =>
+    `- ${t.name}: ${t.participantsNeeded} משתתפים, קושי ${t.difficulty}`
+  ).join("\n");
+
+  const existingScheduleNote = slots.length > 0
+    ? `\nשיבוץ קיים כבר חושב. המפקד רוצה לשנות אותו לפי דרישות חדשות.`
+    : "";
+
+  return `אתה עוזר AI חכם של מערכת שבצ"ק לקבוצה "${groupName || "הקבוצה"}".
+תפקידך: לעזור למפקד לנסח דרישות מיוחדות לשיבוץ. ענה תמיד בעברית.
+${existingScheduleNote}
+
+חיילים בקבוצה:
+${soldiersStr || "אין נתונים"}
+
+משימות:
+${tasksStr || "אין נתונים"}
+
+הנחיות:
+- שאל שאלות הבהרה אם הדרישות לא ברורות.
+- כשאתה מבין את כל הדרישות, סכם אותן בצורה ממוספרת ובהירה.
+- ענה בשפה ידידותית וצבאית מקצועית.
+- זכור: הדרישות שתאסוף ישמשו ליצירת שיבוץ חדש.`;
 }
