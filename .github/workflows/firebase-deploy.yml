@@ -9,6 +9,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,6 +23,11 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
       - name: Install dependencies
         run: npm ci
 
@@ -26,9 +35,4 @@ jobs:
         run: npm run build
 
       - name: Deploy to Firebase Hosting
-        env:
-          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          GOOGLE_APPLICATION_CREDENTIALS: /tmp/sa.json
-        run: |
-          printenv FIREBASE_SA > /tmp/sa.json
-          npx firebase-tools@latest deploy --only hosting --project rome-123
+        run: npx firebase-tools@latest deploy --only hosting --project rome-123
