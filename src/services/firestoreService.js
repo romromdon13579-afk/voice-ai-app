@@ -138,12 +138,32 @@ export async function getSchedulesForSoldier(groupId, soldierUid, startDate, end
 }
 
 export async function saveBulkSchedule(groupId, slots) {
-  const batch = writeBatch(db);
-  slots.forEach(slot => {
-    const ref = doc(collection(db, "groups", groupId, "schedules"));
-    batch.set(ref, { ...slot, createdAt: Timestamp.now() });
-  });
-  await batch.commit();
+  // Firestore batch limit is 500 writes; chunk to stay safe
+  const CHUNK = 400;
+  for (let i = 0; i < slots.length; i += CHUNK) {
+    const batch = writeBatch(db);
+    slots.slice(i, i + CHUNK).forEach(slot => {
+      const ref = doc(collection(db, "groups", groupId, "schedules"));
+      batch.set(ref, { ...slot, createdAt: Timestamp.now() });
+    });
+    await batch.commit();
+  }
+}
+
+export async function clearSchedulesForGroup(groupId, startDate, endDate) {
+  const q = query(
+    collection(db, "groups", groupId, "schedules"),
+    where("startTime", ">=", Timestamp.fromDate(startDate)),
+    where("startTime", "<=", Timestamp.fromDate(endDate))
+  );
+  const snap = await getDocs(q);
+  if (snap.empty) return;
+  const CHUNK = 400;
+  for (let i = 0; i < snap.docs.length; i += CHUNK) {
+    const batch = writeBatch(db);
+    snap.docs.slice(i, i + CHUNK).forEach(d => batch.delete(d.ref));
+    await batch.commit();
+  }
 }
 
 // ── Messages ───────────────────────────────────────────────────────────────

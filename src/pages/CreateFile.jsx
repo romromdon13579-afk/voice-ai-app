@@ -35,7 +35,12 @@ export default function CreateFile() {
 
   // Step 3
   const [history, setHistory] = useState({});
-  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 16));
+  const [startDate, setStartDate] = useState(() => {
+    // Use local time (not UTC) for datetime-local input
+    const now = new Date();
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+  });
 
   const [saving, setSaving] = useState(false);
   const [groupId, setGroupId] = useState(null);
@@ -184,9 +189,10 @@ export default function CreateFile() {
         });
       }
 
-      // Add soldiers
+      // Add soldiers and collect their real Firestore IDs
+      const soldierIdMap = {}; // tempId -> firestoreId
       for (const soldier of soldiers) {
-        await addSoldierToGroup(gid, {
+        const firestoreId = await addSoldierToGroup(gid, {
           name: soldier.name,
           displayName: soldier.displayName || soldier.name,
           activeDays: soldier.activeDays,
@@ -194,17 +200,18 @@ export default function CreateFile() {
           uid: soldier.uid || null,
           ...(soldier.username ? { username: soldier.username } : {})
         });
+        soldierIdMap[soldier.tempId] = firestoreId;
       }
 
-      // Save history
+      // Save history using real Firestore soldier IDs (not tempIds)
       const historyRows = [];
-      soldiers.forEach((s, si) => {
+      soldiers.forEach((s) => {
         tasks.forEach((t, ti) => {
           const key = `${s.tempId}_${ti}`;
           const count = history[key] || 0;
           if (count > 0) {
             historyRows.push({
-              soldierId: s.tempId.toString(),
+              soldierId: soldierIdMap[s.tempId] || s.tempId.toString(),
               soldierName: s.name,
               taskName: t.name,
               difficulty: t.difficulty,
@@ -342,7 +349,15 @@ export default function CreateFile() {
           </button>
 
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button className="btn btn-primary" onClick={() => setStep(2)} disabled={!fileName.trim()}>
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                const namedTasks = tasks.filter(t => t.name.trim());
+                if (!fileName.trim()) return alert("הזן שם לקובץ.");
+                if (namedTasks.length === 0) return alert("יש להגדיר לפחות משימה אחת עם שם.");
+                setStep(2);
+              }}
+            >
               הבא ← שלב ב׳
             </button>
           </div>

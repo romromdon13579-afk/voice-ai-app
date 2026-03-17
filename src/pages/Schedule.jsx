@@ -4,8 +4,8 @@ import { useAuth } from "../contexts/AuthContext.jsx";
 import {
   getGroupsByCommander, getGroupsForSoldier,
   getSoldiersInGroup, getTasksForGroup,
-  saveBulkSchedule, getSchedulesForGroup,
-  getHistoryForGroup
+  saveBulkSchedule, clearSchedulesForGroup,
+  getSchedulesForGroup, getHistoryForGroup
 } from "../services/firestoreService.js";
 import { computeSchedule } from "../services/schedulerAI.js";
 import {
@@ -84,6 +84,10 @@ export default function Schedule() {
         alert("אין משימות מוגדרות בקבוצה. הוסף משימות תחילה.");
         return;
       }
+      if (soldiers.length === 0) {
+        alert("אין חיילים בקבוצה. הוסף חיילים תחילה.");
+        return;
+      }
 
       // Build workload map
       const wl = {};
@@ -126,6 +130,10 @@ export default function Schedule() {
         startTime: slot.date && slot.startTime ? new Date(slot.date + "T" + slot.startTime) : new Date()
       }));
 
+      // Clear existing schedules for this period before saving new ones
+      const periodStart = startOfDay(new Date());
+      const periodEnd = addDays(periodStart, days);
+      await clearSchedulesForGroup(selectedGroup.id, periodStart, periodEnd);
       await saveBulkSchedule(selectedGroup.id, firestoreSlots);
       setSlots(firestoreSlots);
     } catch (err) {
@@ -343,7 +351,7 @@ export default function Schedule() {
               className="form-input"
               placeholder={isGeminiConfigured()
                 ? 'למשל: "למה אני שובצתי?" או "מי הכי פנוי מחר?"'
-                : "הגדר VITE_GEMINI_API_KEY להפעלת הצ'אט"}
+                : "הגדר VITE_GROQ_API_KEY להפעלת הצ'אט"}
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               style={{ flex: 1 }}

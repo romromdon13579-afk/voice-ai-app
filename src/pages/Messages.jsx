@@ -26,12 +26,16 @@ export default function Messages() {
         const msgs = await getMessagesForUser(g.id, currentUser.uid);
         allMsgs.push(...msgs.map(m => ({ ...m, groupName: g.name })));
       }
-      allMsgs.sort((a, b) => {
+      // Remove broadcast messages that the current user sent (don't show own sent messages in inbox)
+      const filtered = allMsgs.filter(
+        m => !(m.senderUid === currentUser.uid && m.recipientUid === "all")
+      );
+      filtered.sort((a, b) => {
         const ta = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.sentAt || 0);
         const tb = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.sentAt || 0);
         return tb - ta;
       });
-      setMessages(allMsgs);
+      setMessages(filtered);
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import {
   getGroupsByCommander, getGroupsForSoldier,
@@ -38,7 +37,6 @@ function MissingKeyBanner() {
 
 export default function AIChat() {
   const { currentUser, userProfile, isCommander } = useAuth();
-  const navigate = useNavigate();
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [soldiers, setSoldiers] = useState([]);
