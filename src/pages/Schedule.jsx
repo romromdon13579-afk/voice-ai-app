@@ -7,7 +7,10 @@ import {
   saveBulkSchedule, getSchedulesForGroup,
   getHistoryForGroup
 } from "../services/firestoreService.js";
-import { computeSchedule, answerScheduleQuestion } from "../services/schedulerAI.js";
+import { computeSchedule } from "../services/schedulerAI.js";
+import {
+  geminiChat, buildChatSystemPrompt, isGeminiConfigured
+} from "../services/geminiService.js";
 import { addDays, format, startOfDay } from "date-fns";
 
 export default function Schedule() {
@@ -24,10 +27,17 @@ export default function Schedule() {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [chatMessages, setChatMessages] = useState([
-    { role: "ai", text: "שלום! אני כאן לענות על שאלות בנוגע לשיבוץ. שאל אותי כל דבר!" }
+    { role: "ai", text: isGeminiConfigured()
+        ? "שלום! אני ה-AI של השיבוץ 🤖 שאל אותי כל דבר על הטבלה שלפניך."
+        : "⚠️ הצ'אט אינו פעיל — הגדר VITE_GEMINI_API_KEY ב-.env להפעלה."
+    }
   ]);
+  const [chatConversation, setChatConversation] = useState([]);
   const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
   const [workload, setWorkload] = useState({});
+  const [soldierContext, setSoldierContext] = useState([]);
+  const [taskContext, setTaskContext] = useState([]);
 
   const periodLabel = period === "day" ? "יממה" : period === "month" ? "חודש" : "שבוע";
 
@@ -85,11 +95,21 @@ export default function Schedule() {
       });
       setWorkload(wl);
 
-      const generated = computeSchedule({
+      setSoldierContext(soldiers);
+      setTaskContext(tasks);
+
+      const { slots: generated, usedAI } = await computeSchedule({
         soldiers, tasks, history,
         startDate: startOfDay(new Date()),
         days
       });
+
+      if (!usedAI) {
+        setChatMessages(prev => [...prev, {
+          role: "ai",
+          text: "השיבוץ חושב עם האלגוריתם המקומי (Gemini לא זמין). הוסף VITE_GEMINI_API_KEY לשיבוץ חכם יותר."
+        }]);
+      }
 
       // Convert to Firestore format
       const firestoreSlots = generated.map(slot => ({
@@ -118,20 +138,35 @@ export default function Schedule() {
 
   async function handleAskAI(e) {
     e.preventDefault();
-    if (!chatInput.trim()) return;
-
-    const question = chatInput;
+    const question = chatInput.trim();
+    if (!question || chatLoading) return;
     setChatInput("");
     setChatMessages(prev => [...prev, { role: "user", text: question }]);
+    setChatLoading(true);
 
-    // Load soldiers for context
-    let soldiers = [];
-    if (selectedGroup) {
-      soldiers = await getSoldiersInGroup(selectedGroup.id);
+    try {
+      if (!isGeminiConfigured()) throw new Error("MISSING_API_KEY");
+
+      const systemPrompt = buildChatSystemPrompt({
+        groupName: selectedGroup?.name,
+        soldiers: soldierContext,
+        tasks: taskContext,
+        slots,
+        workload
+      });
+
+      const historyWithNew = [...chatConversation, { role: "user", text: question }];
+      const reply = await geminiChat(historyWithNew, systemPrompt);
+      setChatConversation([...historyWithNew, { role: "ai", text: reply }]);
+      setChatMessages(prev => [...prev, { role: "ai", text: reply }]);
+    } catch (err) {
+      const errText = err.message === "MISSING_API_KEY"
+        ? "⚠️ מפתח API חסר — הגדר VITE_GEMINI_API_KEY ב-.env"
+        : `שגיאה: ${err.message}`;
+      setChatMessages(prev => [...prev, { role: "ai", text: errText }]);
+    } finally {
+      setChatLoading(false);
     }
-
-    const answer = answerScheduleQuestion(question, slots, soldiers, workload);
-    setChatMessages(prev => [...prev, { role: "ai", text: answer }]);
   }
 
   // Group slots by date
@@ -274,20 +309,41 @@ export default function Schedule() {
           <div className="chat-messages">
             {chatMessages.map((msg, i) => (
               <div key={i} className={`chat-bubble ${msg.role}`}>
-                {msg.role === "ai" && <strong style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", opacity: 0.7 }}>🤖 AI שמירות</strong>}
-                {msg.text}
+                {msg.role === "ai" && (
+                  <strong style={{ display: "block", marginBottom: 4, fontSize: "0.8rem", opacity: 0.7 }}>
+                    🤖 Gemini AI
+                  </strong>
+                )}
+                <span style={{ whiteSpace: "pre-wrap" }}>{msg.text}</span>
               </div>
             ))}
+            {chatLoading && (
+              <div className="chat-bubble ai">
+                <span style={{ display: "flex", gap: 6, alignItems: "center", fontSize: "0.85rem" }}>
+                  <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2, margin: 0 }} />
+                  Gemini חושב...
+                </span>
+              </div>
+            )}
           </div>
           <form className="chat-input-row" onSubmit={handleAskAI}>
             <input
               className="form-input"
-              placeholder='למשל: "למה אני שובצתי לש"ג הלילה?" או "מי הכי פנוי מחר?"'
+              placeholder={isGeminiConfigured()
+                ? 'למשל: "למה אני שובצתי?" או "מי הכי פנוי מחר?"'
+                : "הגדר VITE_GEMINI_API_KEY להפעלת הצ'אט"}
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               style={{ flex: 1 }}
+              disabled={chatLoading || !isGeminiConfigured()}
             />
-            <button className="btn btn-primary" type="submit">שאל</button>
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={chatLoading || !chatInput.trim() || !isGeminiConfigured()}
+            >
+              שאל
+            </button>
           </form>
         </div>
       </div>
