@@ -15,7 +15,6 @@ import Settings from "./pages/Settings.jsx";
 import Help from "./pages/Help.jsx";
 import Schedule from "./pages/Schedule.jsx";
 import Messages from "./pages/Messages.jsx";
-import ComplexNumbers from "./pages/ComplexNumbers.jsx";
 
 function PrivateRoute({ children }) {
   const { currentUser } = useAuth();
@@ -51,7 +50,6 @@ export default function App() {
       <Route path="/ai-chat" element={<PrivateRoute><AppLayout><AIChat /></AppLayout></PrivateRoute>} />
       <Route path="/settings" element={<PrivateRoute><AppLayout><Settings /></AppLayout></PrivateRoute>} />
       <Route path="/help" element={<PrivateRoute><AppLayout><Help /></AppLayout></PrivateRoute>} />
-      <Route path="/complex" element={<PrivateRoute><AppLayout><ComplexNumbers /></AppLayout></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
