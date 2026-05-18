@@ -9,6 +9,7 @@ const soldierNav = [
   { path: "/send-message",icon: "✉️", label: "שליחת הודעה למפקד" },
   { path: "/messages",    icon: "🔔", label: "הודעות" },
   { path: "/ai-chat",     icon: "🤖", label: "צ'אט AI" },
+  { path: "/complex",     icon: "🔢", label: "מספרים מרוכבים" },
   { path: "/help",        icon: "❓", label: "עזרה" },
   { path: "/settings",    icon: "⚙️", label: "הגדרות" },
 ];
